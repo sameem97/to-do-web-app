@@ -5,6 +5,8 @@ pipeline {
         DOCKER_IMAGE_REPO = credentials('DOCKER_IMAGE_REPO')
         MINIKUBE_HOST = credentials('MINIKUBE_HOST')
         DOCKERHUB_CREDENTIALS = credentials('dockerhub-credentials')
+        SECRET_KEY = credentials('SECRET_KEY')
+        DATABASE_URL = credentials('DATABASE_URL')
         DOCKER_TAG = "${BUILD_NUMBER}"
     }
     
@@ -27,7 +29,7 @@ pipeline {
                     // The --rm flag ensures the container is removed after the test
                     // The -v $(pwd)/tests:/app/tests maps your local tests directory into the container
                     // This assumes app.py is in the root of your repo
-                    sh "docker run --rm ${DOCKER_IMAGE_REPO}:${DOCKER_TAG} python -m pytest"
+                    sh "docker run --rm -e SECRET_KEY=${SECRET_KEY} -e DATABASE_URL=${DATABASE_URL} ${DOCKER_IMAGE_REPO}:${DOCKER_TAG} python -m pytest"
                 }
             }
         }
