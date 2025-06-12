@@ -97,6 +97,8 @@ The application will be available at <http://localhost:5000>
 - `SECRET_KEY`: Secret key for session management
 - `DATABASE_URL`: SQLite database URL (default: sqlite:///instance/todo.db)
 
+**Note:** If running the application locally using `flask run`, you need to set the `FLASK_APP` and `FLASK_DEBUG` environment variables. If running via Docker, these variables are not required as the application is run using Gunicorn.
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
@@ -118,6 +120,7 @@ A Minikube cluster is set up on an EC2 instance to simulate a Kubernetes environ
 **Setup Steps:**
 
 1.  **Launch EC2 Instance:** Provision an EC2 instance (e.g., Ubuntu 22.04, `t2.medium` or larger for Minikube). Ensure appropriate Security Group rules are in place (e.g., SSH on port 22, HTTP on port 80).
+
 2.  **Install Docker:**
 
     ```bash
@@ -248,6 +251,10 @@ A CI/CD pipeline is set up using Jenkins on a separate EC2 instance to automate 
     *   Install necessary Jenkins plugins (e.g., Docker, Kubernetes, Pipeline).
     *   Add DockerHub credentials to Jenkins.
     *   Configure SSH access from Jenkins to the Minikube EC2 instance.
+    *   Add the following credentials in Jenkins:
+        -   `DOCKER_IMAGE_REPO`: The name of the Docker image repository on DockerHub.
+        -   `MINIKUBE_HOST`: The IP address of the Minikube EC2 instance.
+        -   `dockerhub-credentials`: The credentials for accessing DockerHub.
 
 2.  **Minikube EC2 Instance:**
 
