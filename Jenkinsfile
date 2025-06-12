@@ -26,10 +26,8 @@ pipeline {
             steps {
                 script {
                     // Run tests inside the built Docker image
-                    // The --rm flag ensures the container is removed after the test
-                    // The -v $(pwd)/tests:/app/tests maps your local tests directory into the container
-                    // This assumes app.py is in the root of your repo
-                    sh "docker run --rm -e SECRET_KEY=${SECRET_KEY} -e DATABASE_URL=${DATABASE_URL} ${DOCKER_IMAGE_REPO}:${DOCKER_TAG} python -m pytest"
+                    // Override the entrypoint to run pytest directly
+                    sh "docker run --rm --entrypoint python -e SECRET_KEY=${SECRET_KEY} -e DATABASE_URL=${DATABASE_URL} ${DOCKER_IMAGE_REPO}:${DOCKER_TAG} -m pytest"
                 }
             }
         }
