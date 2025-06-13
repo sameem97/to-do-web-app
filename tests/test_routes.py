@@ -1,13 +1,25 @@
 # tests/test_routes.py
 import pytest
-from app import app, db  # Assuming app.py
+import os
+from dotenv import load_dotenv
+from app import create_app, db
+
+# Load environment variables from .env file if it exists
+load_dotenv()
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")
 def flask_client():
     """Configures the Flask app for testing and sets up an in-memory database for routes testing."""
-    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
-    app.config["TESTING"] = True
+    # Create a test app instance
+    app = create_app(
+        {
+            "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
+            "TESTING": True,
+            "SECRET_KEY": os.getenv("SECRET_KEY") or os.urandom(24).hex(),
+        }
+    )
+
     with app.app_context():
         db.create_all()
 
@@ -34,7 +46,9 @@ def test_register_login_flow(flask_client):
         data={"username": "newuser", "password": "newpassword"},
         follow_redirects=True,
     )
-    assert b"newuser" in response.data  # Check if dashboard shows username or similar
+    assert (
+        b"Hello, newuser! Your Tasks" in response.data
+    )  # Check if dashboard shows username and tasks
 
     # Test logout
     response = flask_client.get("/logout", follow_redirects=True)
@@ -47,3 +61,36 @@ def test_register_login_flow(flask_client):
         follow_redirects=True,
     )
     assert b"Your Tasks" in response.data  # Check if dashboard content is present
+
+
+def test_add_task_with_priority(flask_client):
+    """Tests adding a task with a priority and verifies its display on the dashboard."""
+    # First, register and log in a user
+    flask_client.post(
+        "/register",
+        data={"username": "testuser_priority", "password": "testpassword"},
+        follow_redirects=True,
+    )
+    response = flask_client.post(
+        "/login",
+        data={"username": "testuser_priority", "password": "testpassword"},
+        follow_redirects=True,
+    )
+    assert b"Your Tasks" in response.data
+
+    # Add a task with priority
+    response = flask_client.post(
+        "/add_task",
+        data={
+            "description": "Buy milk with priority",
+            "due_date": "",
+            "priority": "High",
+        },
+        follow_redirects=True,
+    )
+    assert b"Buy milk with priority" in response.data
+    assert b"High" in response.data  # Assert that High priority is displayed
+
+    # Test logout
+    response = flask_client.get("/logout", follow_redirects=True)
+    assert b"Login" in response.data

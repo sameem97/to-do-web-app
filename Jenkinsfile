@@ -18,16 +18,32 @@ pipeline {
         }
         stage('Build') {
             steps {
-                sh 'docker build -t ${DOCKER_IMAGE_REPO}:${DOCKER_TAG} .'
+                sh 'docker build --no-cache -t ${DOCKER_IMAGE_REPO}:${DOCKER_TAG} .'
             }
         }
         
         stage('Test') {
             steps {
                 script {
-                    // Run tests inside the built Docker image
-                    // Override the entrypoint to run pytest directly
-                    sh "docker run --rm --entrypoint python -e SECRET_KEY=${SECRET_KEY} -e DATABASE_URL=${DATABASE_URL} ${DOCKER_IMAGE_REPO}:${DOCKER_TAG} -m pytest"
+                    // Create database tables before running tests
+                    sh """
+                        docker run --rm --entrypoint python \
+                            -e SECRET_KEY=${SECRET_KEY} \
+                            -e DATABASE_URL=${DATABASE_URL} \
+                            -e PYTHONPATH=/app \
+                            ${DOCKER_IMAGE_REPO}:${DOCKER_TAG} \
+                            -c 'from app import create_app, db; app = create_app(); app.app_context().push(); db.create_all()'
+                    """
+                    
+                    // Run tests with verbose output and proper environment
+                    sh """
+                        docker run --rm --entrypoint python \
+                            -e SECRET_KEY=${SECRET_KEY} \
+                            -e DATABASE_URL=${DATABASE_URL} \
+                            -e PYTHONPATH=/app \
+                            ${DOCKER_IMAGE_REPO}:${DOCKER_TAG} \
+                            -m pytest -v --tb=short
+                    """
                 }
             }
         }
@@ -43,9 +59,11 @@ pipeline {
         
         stage('Deploy to Minikube') {
             steps {
-                sh '''
-                    ssh -o StrictHostKeyChecking=no ubuntu@${MINIKUBE_HOST} "kubectl set image deployment/todo-app todo-app=${DOCKER_IMAGE_REPO}:${DOCKER_TAG}"
-                '''
+                withCredentials([sshUserPrivateKey(credentialsId: 'MINIKUBE_SSH_KEY', keyFileVariable: 'SSH_KEY_FILE', usernameVariable: 'SSH_USERNAME')]) {
+                    sh '''
+                        ssh -i ${SSH_KEY_FILE} -o StrictHostKeyChecking=no ${SSH_USERNAME}@${MINIKUBE_HOST} "kubectl set image deployment/todo-app todo-app=${DOCKER_IMAGE_REPO}:${DOCKER_TAG}"
+                    '''
+                }
             }
         }
     }

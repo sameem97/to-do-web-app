@@ -19,6 +19,14 @@
                         <label for="due_date" class="form-label">Due Date</label>
                         <input type="date" class="form-control" id="due_date" name="due_date">
                     </div>
+                    <div class="mb-3">
+                        <label for="priority" class="form-label">Priority</label>
+                        <select class="form-select" id="priority" name="priority">
+                            <option value="Low">Low</option>
+                            <option value="Medium">Medium</option>
+                            <option value="High">High</option>
+                        </select>
+                    </div>
                     <button type="submit" class="btn btn-primary">Add Task</button>
                 </form>
             </div>
@@ -26,7 +34,7 @@
 
         <div class="card mt-4">
             <div class="card-header">
-                <h3>Your Tasks</h3>
+                <h3>Hello, {{ current_user.username }}! Your Tasks</h3>
             </div>
             <div class="card-body">
                 {% if tasks %}
@@ -43,6 +51,9 @@
                                         <small class="text-muted ms-2">
                                             Due: {{ task.due_date.strftime('%Y-%m-%d') }}
                                         </small>
+                                    {% endif %}
+                                    {% if task.priority %}
+                                        <span class="badge bg-info ms-2">{{ task.priority }}</span>
                                     {% endif %}
                                 </div>
                                 <div>
